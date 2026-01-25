@@ -13,15 +13,26 @@ class RegisterView(APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        role = serializer.validated_data.get("role", "STUDENT")
+
+        # SECURITY RULE: allow only these roles
+        if role not in ["STUDENT", "TEST_MAKER"]:
+            role = "STUDENT"
+
         user = serializer.save()
-        assign_role(user, "STUDENT")
+
+        assign_role(user, role)
+
         refresh = RefreshToken.for_user(user)
 
         return Response({
             "user": ProfileSerializer(user).data,
+            "role": role,
             "refresh": str(refresh),
             "access": str(refresh.access_token),
         }, status=status.HTTP_201_CREATED)
+
 class LoginView(APIView):
     permission_classes = [AllowAny]
 
