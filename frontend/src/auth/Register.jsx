@@ -4,13 +4,16 @@ import { useNavigate } from "react-router-dom";
 
 export default function Register() {
   const navigate = useNavigate();
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
-    name: "",
+    
     email: "",
+    name: "",
     password: "",
+    role: "STUDENT", // default
   });
 
   function handleChange(e) {
@@ -26,7 +29,7 @@ export default function Register() {
     try {
       await registerUser(formData);
       navigate("/login");
-    } catch (err) {
+    } catch {
       setError("Registration failed. Try again.");
     } finally {
       setLoading(false);
@@ -73,6 +76,33 @@ export default function Register() {
                   onChange={handleChange}
                   required
                 />
+              </div>
+
+              {/* Role Selection */}
+              <div className="form-field">
+                <label>Register As</label>
+
+                <label>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="STUDENT"
+                    checked={formData.role === "STUDENT"}
+                    onChange={handleChange}
+                  />
+                  Student
+                </label>
+
+                <label>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="TEST_MAKER"
+                    checked={formData.role === "TEST_MAKER"}
+                    onChange={handleChange}
+                  />
+                  Test Creator
+                </label>
               </div>
 
               <button className="btn-primary" disabled={loading}>

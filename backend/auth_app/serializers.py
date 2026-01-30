@@ -1,12 +1,12 @@
 from rest_framework import serializers
 from .models import User
 
-
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     role = serializers.ChoiceField(
         choices=["STUDENT", "TEST_MAKER"],
-        required=False
+        required=False,
+        default="STUDENT"
     )
 
     class Meta:
@@ -14,7 +14,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ("email", "name", "password", "role")
 
     def create(self, validated_data):
-        validated_data.pop("role", None)  # role handled in view
+        validated_data.pop("role", None)  # handled in view
         password = validated_data.pop("password")
 
         user = User.objects.create(**validated_data)
@@ -27,4 +27,4 @@ class RegisterSerializer(serializers.ModelSerializer):
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "email", "name")
+        fields = ("id", "email", "name", "role")

@@ -1,34 +1,110 @@
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import PasscodeManager from "./PasscodeManager";
+import { getTestById, getTestQuestions } from "../api/tests.api";
+
 import CreateQuestion from "./CreateQuestion";
-import QuestionList from "./QuestionList";
+import PasscodeManager from "./PasscodeManager";
+import ShareTest from "./ShareTest";
 
 export default function EditTest() {
-  const { testId } = useParams();
+  const { id: testId } = useParams();
+
+  const [test, setTest] = useState(null);
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  async function loadData() {
+    try {
+      const [testRes, questionsRes] = await Promise.all([
+        getTestById(testId),
+        getTestQuestions(testId),
+      ]);
+
+      setTest(testRes.data);
+      setQuestions(questionsRes.data || []);
+    } catch {
+      setError("Failed to load test data.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadData();
+  }, [testId]);
+
+  if (loading) {
+    return (
+      <div className="page page-center">
+        <div className="container">
+          <p className="text-muted">Loading test…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="page page-center">
+        <div className="container">
+          <p className="text-error">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page">
+      {/* Test header */}
       <section className="section">
         <div className="container">
           <div className="card">
-            <h2>Edit Test</h2>
-            <p className="text-muted">Test ID: {testId}</p>
+            <h2>{test.title}</h2>
+            <p className="text-muted">{test.description}</p>
           </div>
         </div>
       </section>
 
-      <section className="section section--tight">
-        <div className="container">
-          <PasscodeManager testId={testId} />
-        </div>
-      </section>
+      {/* Passcode + Share */}
       <section className="section section--tight">
         <div className="container grid grid-2">
-            <CreateQuestion />
-            <QuestionList />
+          <PasscodeManager testId={testId} />
+          <ShareTest test={test} />
         </div>
-        </section>
+      </section>
 
+      {/* Add question */}
+      <section className="section">
+        <div className="container">
+          <CreateQuestion testId={testId} onCreated={loadData} />
+        </div>
+      </section>
+
+      {/* Question list */}
+      <section className="section section--tight">
+        <div className="container">
+          <h3>Questions</h3>
+
+          {questions.length === 0 ? (
+            <div className="card">
+              <p className="text-muted">No questions added yet.</p>
+            </div>
+          ) : (
+            <div className="grid grid-auto">
+              {questions.map((q, idx) => (
+                <div key={q.id} className="card">
+                  <strong>Q{idx + 1}.</strong>
+                  <p>{q.question_text}</p>
+                  <p className="text-muted">
+                    Type: {q.question_type}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

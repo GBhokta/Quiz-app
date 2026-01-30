@@ -1,16 +1,19 @@
 import { useState } from "react";
 import { loginUser } from "../api/auth.api";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 
 export default function Login() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const { loadUser } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -18,24 +21,33 @@ export default function Login() {
   }
 
   async function handleSubmit(e) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+  e.preventDefault();
+  setLoading(true);
+  setError("");
 
-    try {
-      const res = await loginUser(formData);
+  try {
+    const res = await loginUser(formData);
 
-      // adjust keys if backend differs
-      localStorage.setItem("access_token", res.data.access);
-      localStorage.setItem("refresh_token", res.data.refresh);
+    // Store tokens
+   // console.log("Login successful:", res.data);
+    localStorage.setItem("access_token", res.data.access);
+    localStorage.setItem("refresh_token", res.data.refresh);
+    // console.log(res.data.name);
+    // Sync auth context
+    await loadUser();
+    // console.log("User loaded");
+    // Redirect after auth is ready
+    navigate("/dashboard");
+    // navigate("/testpage");
+    // console.log("Navigation done");
 
-      navigate("/tests/my"); // future creator dashboard
-    } catch (err) {
-      setError("Invalid email or password.");
-    } finally {
-      setLoading(false);
-    }
+  } catch {
+    setError("Invalid email or password.");
+  } finally {
+    setLoading(false);
   }
+}
+
 
   return (
     <div className="page page-center">
@@ -70,12 +82,13 @@ export default function Login() {
               </div>
 
               <button className="btn-primary" disabled={loading}>
-                {loading ? "Logging in..." : "Login"}
+                {loading ? "Logging in…" : "Login"}
               </button>
             </form>
           </div>
         </div>
       </section>
+      
     </div>
   );
 }

@@ -1,12 +1,14 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-from .utils import assign_role
 
 from .models import User
 from .serializers import RegisterSerializer, ProfileSerializer
+from .utils import assign_role
+
+
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -16,12 +18,13 @@ class RegisterView(APIView):
 
         role = serializer.validated_data.get("role", "STUDENT")
 
-        # SECURITY RULE: allow only these roles
+        # Security: whitelist roles
         if role not in ["STUDENT", "TEST_MAKER"]:
             role = "STUDENT"
 
         user = serializer.save()
 
+        # ✅ role assigned ONCE
         assign_role(user, role)
 
         refresh = RefreshToken.for_user(user)
@@ -32,6 +35,7 @@ class RegisterView(APIView):
             "refresh": str(refresh),
             "access": str(refresh.access_token),
         }, status=status.HTTP_201_CREATED)
+
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
@@ -53,7 +57,10 @@ class LoginView(APIView):
             "refresh": str(refresh),
             "access": str(refresh.access_token),
         })
+
+
 class ProfileView(APIView):
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         serializer = ProfileSerializer(request.user)

@@ -26,10 +26,14 @@ export default function PasscodeManager({ testId }) {
 
   return (
     <div className="card">
-      <h3>Passcode Manager</h3>
+      <h3>Passcode Settings</h3>
 
-      {message && <p className="text-success">{message}</p>}
+      <p className="text-muted">
+        Changing the passcode will immediately invalidate old access.
+      </p>
+
       {error && <p className="text-error">{error}</p>}
+      {message && <p className="text-success">{message}</p>}
 
       <form className="form-stack" onSubmit={handleSubmit}>
         <div className="form-field">
@@ -46,10 +50,6 @@ export default function PasscodeManager({ testId }) {
           {loading ? "Updating…" : "Update Passcode"}
         </button>
       </form>
-
-      <p className="text-muted">
-        Changing passcode will invalidate all previous access.
-      </p>
     </div>
   );
 }

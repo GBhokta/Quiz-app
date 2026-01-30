@@ -35,6 +35,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+    @property
+    def role(self):
+        user_role = self.userrole_set.select_related("role").first()
+        return user_role.role.name if user_role else None
+
 class Role(models.Model):
     name = models.CharField(max_length=50, unique=True)
 

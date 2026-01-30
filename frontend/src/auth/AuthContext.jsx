@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { getProfile } from "../api/auth.api";
-import { isAuthenticated } from "./auth.utils";
+import { isAuthenticated, logout } from "./auth.utils";
 
 const AuthContext = createContext(null);
 
@@ -8,7 +8,9 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // 🔹 Load logged-in user from backend
   async function loadUser() {
+    // 1️⃣ No token → user is not logged in
     if (!isAuthenticated()) {
       setUser(null);
       setLoading(false);
@@ -16,16 +18,21 @@ export function AuthProvider({ children }) {
     }
 
     try {
+      // 2️⃣ Token exists → fetch profile
       const res = await getProfile();
-      setUser(res.data);
-    } catch {
+      console.log("Profile loaded:", res.data);
+      setUser(res.data); // backend already sends role
+    } catch (error) {
+      // 3️⃣ Token invalid / expired
+      logout();
       setUser(null);
     } finally {
+      // 4️⃣ Auth check completed
       setLoading(false);
     }
   }
 
-  // Load user on first app load
+  // 🔹 Run once when app loads
   useEffect(() => {
     loadUser();
   }, []);
@@ -35,9 +42,9 @@ export function AuthProvider({ children }) {
       value={{
         user,
         loading,
-        loadUser,   // 👈 THIS IS CRITICAL
-        isTestMaker: user?.roles?.includes("TEST_MAKER"),
-        isStudent: user?.roles?.includes("STUDENT"),
+        loadUser, // used after login
+        isTestMaker: user?.role === "TEST_MAKER",
+        isStudent: user?.role === "STUDENT",
       }}
     >
       {children}

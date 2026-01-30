@@ -1,5 +1,5 @@
 import api from "./axios";
 
-export function validateTestAccess(payload) {
+export function validateAccess(payload) {
   return api.post("/access/validate/", payload);
 }

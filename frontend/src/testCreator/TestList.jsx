@@ -1,13 +1,24 @@
 import { useEffect, useState } from "react";
 import { getMyTests } from "../api/tests.api";
 import { Link } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 
 export default function TestList() {
+  const { user, loading: authLoading, isTestMaker } = useAuth();
+
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (authLoading) return;
+
+    if (!user || !isTestMaker) {
+      setError("Unauthorized access.");
+      setLoading(false);
+      return;
+    }
+
     async function load() {
       try {
         const res = await getMyTests();
@@ -18,10 +29,11 @@ export default function TestList() {
         setLoading(false);
       }
     }
-    load();
-  }, []);
 
-  if (loading) {
+    load();
+  }, [authLoading, user, isTestMaker]);
+
+  if (loading || authLoading) {
     return (
       <div className="page page-center">
         <div className="container">
@@ -37,7 +49,9 @@ export default function TestList() {
         <div className="container">
           <div className="card flex-between">
             <h2>My Tests</h2>
-            <Link className="btn-primary" to="/tests/create">Create Test</Link>
+            <Link className="btn-primary" to="/tests/create">
+              Create Test
+            </Link>
           </div>
         </div>
       </section>

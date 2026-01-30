@@ -1,49 +1,38 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { validateTestAccess } from "../api/access.api";
+import { validateAccess } from "../api/access.api";
 
 export default function TestAccessPage() {
   const navigate = useNavigate();
 
-  const [step, setStep] = useState(1);
-  const [testCode, setTestCode] = useState("");
-  const [passcode, setPasscode] = useState("");
+  const [formData, setFormData] = useState({
+    test_code: "",
+    passcode: "",
+  });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleTestCodeSubmit(e) {
-    e.preventDefault();
-    if (!testCode.trim()) return;
-    setError("");
-    setStep(2);
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   }
 
-  async function handlePasscodeSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      const response = await validateTestAccess({
-        test_code: testCode,
-        passcode: passcode,
-      });
+      const res = await validateAccess(formData);
 
-      const { access_granted, test_id, session_token } = response.data;
+      // Store session info (NOT JWT)
+      sessionStorage.setItem("session_token", res.data.session_token);
+      sessionStorage.setItem("test_id", res.data.test_id);
 
-      if (!access_granted) {
-        setError("Invalid test code or passcode");
-        return;
-      }
-
-      // Store session token (scoped, not JWT)
-      sessionStorage.setItem("session_token", session_token);
-      sessionStorage.setItem("test_id", test_id);
-
-      navigate(`/session/start`);
-    } catch (err) {
-      setError("Access denied. Please check the passcode.");
+      navigate("/session/start");
+    } catch {
+      setError("Invalid test code or passcode.");
     } finally {
       setLoading(false);
     }
@@ -54,45 +43,37 @@ export default function TestAccessPage() {
       <section className="section">
         <div className="container">
           <div className="card">
-            <h2>Access Test</h2>
+            <h2>Enter Test</h2>
 
             {error && <p className="text-error">{error}</p>}
 
-            {step === 1 && (
-              <form className="form-stack" onSubmit={handleTestCodeSubmit}>
-                <div className="form-field">
-                  <label>Test Code</label>
-                  <input
-                    type="text"
-                    value={testCode}
-                    onChange={(e) => setTestCode(e.target.value)}
-                    required
-                  />
-                </div>
+            <form className="form-stack" onSubmit={handleSubmit}>
+              <div className="form-field">
+                <label>Test Code</label>
+                <input
+                  type="text"
+                  name="test_code"
+                  value={formData.test_code}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
 
-                <button className="btn-primary" type="submit">
-                  Continue
-                </button>
-              </form>
-            )}
+              <div className="form-field">
+                <label>Passcode</label>
+                <input
+                  type="password"
+                  name="passcode"
+                  value={formData.passcode}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
 
-            {step === 2 && (
-              <form className="form-stack" onSubmit={handlePasscodeSubmit}>
-                <div className="form-field">
-                  <label>Passcode</label>
-                  <input
-                    type="password"
-                    value={passcode}
-                    onChange={(e) => setPasscode(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <button className="btn-primary" type="submit" disabled={loading}>
-                  {loading ? "Checking..." : "Start Test"}
-                </button>
-              </form>
-            )}
+              <button className="btn-primary" disabled={loading}>
+                {loading ? "Validating…" : "Start Test"}
+              </button>
+            </form>
           </div>
         </div>
       </section>

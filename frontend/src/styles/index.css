@@ -211,7 +211,12 @@ body {
   justify-content: center;
 }
 
-
+.flex-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
 
 
 .flex-between {
@@ -362,16 +367,32 @@ footer {
 .btn-primary {
   background-color: var(--color-primary);
   color: #ffffff;
-  padding-block: var(--space-2);  /* 8px */
-  padding-inline: var(--space-4); /* 24px */
+  padding-block: var(--space-2);   /* 8px */
+  padding-inline: var(--space-4);  /* 24px */
   border-radius: 0.5rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.1s ease;
 }
-
-
-
 
 .btn-primary:hover {
   background-color: var(--color-primary-hover);
+  color: #ffffff; /* force contrast */
+  border-color: var(--color-primary-hover);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--color-primary-hover);
+  outline-offset: 2px;
 }
 
 
@@ -655,6 +676,35 @@ footer {
 .timer {
   font-weight: 600;
   color: var(--color-text-primary);
+}
+.palette-btn {
+  border: 1px solid var(--color-border);
+  padding: var(--space-2);
+  border-radius: 0.5rem;
+  background-color: var(--color-surface);
+}
+
+.palette-not-visited {
+  background-color: var(--color-surface);
+}
+
+.palette-visited {
+  background-color: #e5e7eb; /* neutral gray */
+}
+
+.palette-answered {
+  background-color: var(--color-success);
+  color: white;
+}
+
+.palette-marked {
+  background-color: var(--color-warning);
+  color: white;
+}
+
+.palette-marked-answered {
+  background-color: #7c3aed; /* purple */
+  color: white;
 }
 
 /* ================================

@@ -4,36 +4,36 @@ import { useAuth } from "../auth/AuthContext";
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const { user, loading, isTestMaker, isStudent } = useAuth();
+  const { user, loading, isTestMaker, isStudent, loadUser } = useAuth();
 
-  function handleLogout() {
-    logout();
+  const handleLogout = () => {
+    logout();        // clears token/localStorage
+    loadUser();      // updates context → forces re-render
     navigate("/login");
-  }
+  };
 
-  // Prevent incorrect render before auth state is resolved
   if (loading) return null;
 
   return (
     <header className="navbar">
       <div className="container nav-inner">
-        <div className="nav-brand">QuizApp</div>
+        <div className="nav-brand">
+          <Link to="/">QuizApp</Link>
+        </div>
 
         <nav className="nav-links">
-          {/* Guest */}
+          {/* Guest only */}
           {!user && <Link to="/login">Login</Link>}
           {!user && <Link to="/register">Register</Link>}
 
-          {/* Test Maker */}
-          {isTestMaker && <Link to="/tests/my">My Tests</Link>}
-
-          {/* Student */}
-          {isStudent && <Link to="/results/my">My Results</Link>}
-
-          {/* Everyone */}
+          {/* Authenticated */}
+          {user && isTestMaker && <Link to="/tests/my">My Tests</Link>}
+          {user && isStudent && <Link to="/results/my">My Results</Link>}
+          {user && <Link to="/dashboard">Dashboard</Link>}
+          {user && isStudent && <p>Student</p>} 
+          {user && isTestMaker && <p>Test Maker</p>}
           <Link to="/access">Take Test</Link>
 
-          {/* Authenticated */}
           {user && (
             <button type="button" onClick={handleLogout}>
               Logout

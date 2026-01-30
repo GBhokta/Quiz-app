@@ -10,3 +10,11 @@ export function createTest(payload) {
 export function updatePasscode(testId, payload) {
   return api.put(`/tests/${testId}/passcode/`, payload);
 }
+
+export function getTestById(testId) {
+  return api.get(`/tests/${testId}/`);
+}
+
+export function getTestQuestions(testId) {
+  return api.get(`/tests/${testId}/questions/`);
+}
