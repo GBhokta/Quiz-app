@@ -16,4 +16,5 @@ urlpatterns = [
     path("<int:test_id>/lock/", LockTestView.as_view()),
     path("<int:test_id>/unlock/", UnlockTestView.as_view()),
     path("<int:test_id>/questions/", TestDetailView.as_view()),
+    path("<int:test_id>/edit/", MyTestsView.as_view()),
 ]

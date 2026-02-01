@@ -7,7 +7,7 @@ import PasscodeManager from "./PasscodeManager";
 import ShareTest from "./ShareTest";
 
 export default function EditTest() {
-  const { id: testId } = useParams();
+  const { testId } = useParams();
 
   const [test, setTest] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -16,6 +16,9 @@ export default function EditTest() {
 
   async function loadData() {
     try {
+      setLoading(true);
+      setError("");
+
       const [testRes, questionsRes] = await Promise.all([
         getTestById(testId),
         getTestQuestions(testId),
@@ -23,7 +26,8 @@ export default function EditTest() {
 
       setTest(testRes.data);
       setQuestions(questionsRes.data || []);
-    } catch {
+    } catch (err) {
+      console.error(err);
       setError("Failed to load test data.");
     } finally {
       setLoading(false);
@@ -31,8 +35,13 @@ export default function EditTest() {
   }
 
   useEffect(() => {
+    if (!testId) return; // 🔒 guard
     loadData();
   }, [testId]);
+
+  /* =============================
+     RENDER GUARDS (VERY IMPORTANT)
+  ============================== */
 
   if (loading) {
     return (
@@ -53,6 +62,20 @@ export default function EditTest() {
       </div>
     );
   }
+
+  if (!test) {
+    return (
+      <div className="page page-center">
+        <div className="container">
+          <p className="text-muted">Preparing test…</p>
+        </div>
+      </div>
+    );
+  }
+
+  /* =============================
+     MAIN UI
+  ============================== */
 
   return (
     <div className="page">
