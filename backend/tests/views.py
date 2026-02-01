@@ -7,8 +7,11 @@ from django.utils.crypto import get_random_string
 from django.contrib.auth.hashers import make_password
 
 from auth_app.permissions import IsTestMaker
-from .models import Test, TestAccess, TestPasscodeHistory
-from .serializers import TestSerializer, TestCreateSerializer
+from .models import Test, TestAccess, TestPasscodeHistory, TestQuestion
+from .serializers import AddTestQuestionSerializer, TestQuestionListSerializer, TestSerializer, TestCreateSerializer
+
+
+
 class CreateTestView(APIView):
     permission_classes = [IsAuthenticated, IsTestMaker]
 
@@ -120,3 +123,57 @@ class UnlockTestView(APIView):
         test.is_active = True
         test.save()
         return Response({"detail": "Test unlocked"})
+class AddTestQuestionsView(APIView):
+    permission_classes = [IsAuthenticated, IsTestMaker]
+
+    def get(self, request, test_id):
+        test = get_object_or_404(
+            Test,
+            id=test_id,
+            created_by=request.user
+        )
+
+        qs = TestQuestion.objects.filter(
+            test=test
+        ).select_related("question").order_by("question_order")
+
+        serializer = TestQuestionListSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, test_id):
+        test = get_object_or_404(
+            Test,
+            id=test_id,
+            created_by=request.user
+        )
+
+        questions = request.data.get("questions")
+        if not questions:
+            return Response(
+                {"detail": "Questions list required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = AddTestQuestionSerializer(
+            data=questions,
+            many=True
+        )
+        serializer.is_valid(raise_exception=True)
+
+        created = 0
+        for item in serializer.validated_data:
+            _, was_created = TestQuestion.objects.get_or_create(
+                test=test,
+                question_id=item["question_id"],
+                defaults={
+                    "marks": item["marks"],
+                    "question_order": item["question_order"],
+                }
+            )
+            if was_created:
+                created += 1
+
+        return Response(
+            {"detail": f"{created} questions added"},
+            status=status.HTTP_201_CREATED
+        )

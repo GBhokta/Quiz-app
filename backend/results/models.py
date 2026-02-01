@@ -1,5 +1,5 @@
 from django.db import models
-from session.models import TestAttempt
+from tests.models import TestAttempt
 class Result(models.Model):
 
     attempt = models.OneToOneField(

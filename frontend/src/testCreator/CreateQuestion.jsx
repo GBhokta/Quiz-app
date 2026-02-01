@@ -1,15 +1,20 @@
 import { useState } from "react";
 import { createQuestion } from "../api/questions.api";
 
-export default function CreateQuestion({ testId, onCreated }) {
+export default function CreateQuestion({ onCreated }) {
   const [formData, setFormData] = useState({
     question_text: "",
     question_type: "MCQ",
+    difficulty: "EASY",
+    is_public: true,
+
     option_a: "",
     option_b: "",
     option_c: "",
     option_d: "",
+
     correct_answer: "",
+    numerical_answer: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -20,35 +25,75 @@ export default function CreateQuestion({ testId, onCreated }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+  function buildPayload() {
+    const payload = {
+      question_text: formData.question_text,
+      question_type: formData.question_type,
+      difficulty: formData.difficulty,
+      is_public: formData.is_public,
+    };
 
-    try {
-      await createQuestion({
-        ...formData,
-        test_id: testId,
-      });
-
-      // reset after success
-      setFormData({
-        question_text: "",
-        question_type: "MCQ",
-        option_a: "",
-        option_b: "",
-        option_c: "",
-        option_d: "",
-        correct_answer: "",
-      });
-
-      onCreated?.();
-    } catch {
-      setError("Failed to create question.");
-    } finally {
-      setLoading(false);
+    // NAT
+    if (formData.question_type === "NAT") {
+      payload.correct_numerical_answer = Number(formData.numerical_answer);
+      return payload;
     }
+
+    // MCQ / MSQ
+    const options = [
+      { key: "A", text: formData.option_a },
+      { key: "B", text: formData.option_b },
+      { key: "C", text: formData.option_c },
+      { key: "D", text: formData.option_d },
+    ].filter((o) => o.text.trim() !== "");
+
+    const correctKeys =
+      formData.question_type === "MSQ"
+        ? formData.correct_answer.split(",").map((k) => k.trim().toUpperCase())
+        : [formData.correct_answer.trim().toUpperCase()];
+
+    payload.options = options.map((opt) => ({
+      option_text: opt.text,
+      is_correct: correctKeys.includes(opt.key),
+    }));
+
+    return payload;
   }
+
+async function handleSubmit(e) {
+  e.preventDefault();
+  setLoading(true);
+  setError("");
+
+  try {
+    const payload = buildPayload();
+
+    // 🔥 Parent (EditTest.jsx) handles:
+    // 1. create question
+    // 2. add to test
+    // 3. reload data
+    await onSubmit(payload);
+
+    // reset form after success
+    setFormData({
+      question_text: "",
+      question_type: "MCQ",
+      difficulty: "EASY",
+      is_public: true,
+      option_a: "",
+      option_b: "",
+      option_c: "",
+      option_d: "",
+      correct_answer: "",
+      numerical_answer: "",
+    });
+  } catch (err) {
+    setError("Failed to create question.");
+  } finally {
+    setLoading(false);
+  }
+}
+
 
   return (
     <div className="card">
@@ -57,69 +102,63 @@ export default function CreateQuestion({ testId, onCreated }) {
       {error && <p className="text-error">{error}</p>}
 
       <form className="form-stack" onSubmit={handleSubmit}>
-        <div className="form-field">
-          <label>Question</label>
-          <textarea
-            name="question_text"
-            value={formData.question_text}
-            onChange={handleChange}
-            required
-          />
-        </div>
+        <label>Question</label>
+        <textarea
+          name="question_text"
+          value={formData.question_text}
+          onChange={handleChange}
+          required
+        />
 
-        <div className="form-field">
-          <label>Question Type</label>
-          <select
-            name="question_type"
-            value={formData.question_type}
-            onChange={handleChange}
-          >
-            <option value="MCQ">MCQ</option>
-            <option value="MSQ">MSQ</option>
-            <option value="NAT">NAT</option>
-          </select>
-        </div>
+        <label>Question Type</label>
+        <select
+          name="question_type"
+          value={formData.question_type}
+          onChange={handleChange}
+        >
+          <option value="MCQ">MCQ</option>
+          <option value="MSQ">MSQ</option>
+          <option value="NAT">NAT</option>
+        </select>
 
-        {formData.question_type !== "NAT" && (
+        <label>Difficulty</label>
+        <select
+          name="difficulty"
+          value={formData.difficulty}
+          onChange={handleChange}
+        >
+          <option value="EASY">Easy</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="HARD">Hard</option>
+        </select>
+
+        {formData.question_type !== "NAT" ? (
           <>
-            <div className="form-field">
-              <label>Option A</label>
-              <input name="option_a" value={formData.option_a} onChange={handleChange} />
-            </div>
+            <input name="option_a" placeholder="Option A" onChange={handleChange} />
+            <input name="option_b" placeholder="Option B" onChange={handleChange} />
+            <input name="option_c" placeholder="Option C" onChange={handleChange} />
+            <input name="option_d" placeholder="Option D" onChange={handleChange} />
 
-            <div className="form-field">
-              <label>Option B</label>
-              <input name="option_b" value={formData.option_b} onChange={handleChange} />
-            </div>
-
-            <div className="form-field">
-              <label>Option C</label>
-              <input name="option_c" value={formData.option_c} onChange={handleChange} />
-            </div>
-
-            <div className="form-field">
-              <label>Option D</label>
-              <input name="option_d" value={formData.option_d} onChange={handleChange} />
-            </div>
+            <input
+              name="correct_answer"
+              placeholder={
+                formData.question_type === "MSQ"
+                  ? "Correct answers (A,C)"
+                  : "Correct answer (A)"
+              }
+              onChange={handleChange}
+              required
+            />
           </>
-        )}
-
-        <div className="form-field">
-          <label>Correct Answer</label>
+        ) : (
           <input
-            name="correct_answer"
-            value={formData.correct_answer}
+            name="numerical_answer"
+            placeholder="Correct numerical answer"
             onChange={handleChange}
-            placeholder={
-              formData.question_type === "MSQ"
-                ? "Example: A,C"
-                : "Example: A or 42"
-            }
             required
           />
-        </div>
-
-        <button className="btn-primary" disabled={loading}>
+        )}
+        <button disabled={loading} className="btn-primary">
           {loading ? "Adding…" : "Add Question"}
         </button>
       </form>

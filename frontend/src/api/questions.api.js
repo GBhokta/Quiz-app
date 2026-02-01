@@ -1,7 +1,7 @@
 import api from "./axios";
 
 export function createQuestion(payload) {
-  return api.post("/questions/", payload);
+  return api.post("/questions/create/", payload);
 }
 
 export function getQuestionsByTest(testId) {

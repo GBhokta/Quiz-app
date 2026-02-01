@@ -8,6 +8,7 @@ urlpatterns = [
     path("access/", include("access.urls")),
     path("session/", include("session.urls")),
     path("results/", include("results.urls")),
+    path("questions/", include("questions.urls")),
 
 
 ]

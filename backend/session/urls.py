@@ -1,7 +1,6 @@
 from django.urls import path
-from .views import StartTestSessionView, SubmitTestView
+from .views import StartTestView
 
 urlpatterns = [
-    path("start/", StartTestSessionView.as_view()),
-    path("submit/", SubmitTestView.as_view()),
+    path("start/", StartTestView.as_view()),
 ]

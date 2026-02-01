@@ -109,3 +109,45 @@ class TestQuestion(models.Model):
 
     def __str__(self):
         return f"{self.test.title} | Q{self.question_id}"
+class TestAttempt(models.Model):
+
+    STATUS_CHOICES = (
+        ("IN_PROGRESS", "In Progress"),
+        ("SUBMITTED", "Submitted"),
+        ("EXPIRED", "Expired"),
+        ("FORCE_SUBMITTED", "Force Submitted"),
+    )
+
+    test = models.ForeignKey(
+        Test,
+        on_delete=models.CASCADE,
+        related_name="attempts"
+    )
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    attempt_number = models.PositiveIntegerField(default=1)
+
+    passcode_version_used = models.PositiveIntegerField()
+
+    started_at = models.DateTimeField(auto_now_add=True)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="IN_PROGRESS"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("test", "user", "attempt_number")
+
+    def __str__(self):
+        return f"{self.test.title} | Attempt {self.attempt_number}"

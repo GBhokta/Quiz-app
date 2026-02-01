@@ -4,6 +4,16 @@ from django.conf import settings
 User = settings.AUTH_USER_MODEL
 
 
+class Topic(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Question(models.Model):
 
     QUESTION_TYPE_CHOICES = (
@@ -40,6 +50,16 @@ class Question(models.Model):
 
     explanation = models.TextField(blank=True)
 
+    # Visibility
+    is_public = models.BooleanField(default=False)
+
+    # Relations
+    topics = models.ManyToManyField(
+        Topic,
+        related_name="questions",
+        blank=True
+    )
+
     created_by = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -50,9 +70,11 @@ class Question(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["question_type"]),
             models.Index(fields=["difficulty"]),
+            models.Index(fields=["is_public"]),
             models.Index(fields=["created_by"]),
         ]
 
@@ -61,7 +83,6 @@ class Question(models.Model):
 
 
 class Option(models.Model):
-
     question = models.ForeignKey(
         Question,
         on_delete=models.CASCADE,
@@ -69,8 +90,10 @@ class Option(models.Model):
     )
 
     option_text = models.TextField()
-
     is_correct = models.BooleanField(default=False)
 
+    class Meta:
+        ordering = ["id"]
+
     def __str__(self):
-        return f"Option for Q{self.question_id}"
+        return f"Option for Question {self.question_id}"

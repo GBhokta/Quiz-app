@@ -18,3 +18,7 @@ export function getTestById(testId) {
 export function getTestQuestions(testId) {
   return api.get(`/tests/${testId}/questions/`);
 }
+
+export function addQuestionToTest(testId, payload) {
+  return api.post(`/tests/${testId}/questions/`, payload);
+}

@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getTestById, getTestQuestions } from "../api/tests.api";
+
+import {
+  getTestById,
+  getTestQuestions,
+  addQuestionToTest,
+} from "../api/tests.api";
+
+import { createQuestion } from "../api/questions.api";
 
 import CreateQuestion from "./CreateQuestion";
 import PasscodeManager from "./PasscodeManager";
@@ -13,6 +20,10 @@ export default function EditTest() {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  /* =============================
+     LOAD TEST + QUESTIONS
+  ============================== */
 
   async function loadData() {
     try {
@@ -35,12 +46,36 @@ export default function EditTest() {
   }
 
   useEffect(() => {
-    if (!testId) return; // 🔒 guard
+    if (!testId) return;
     loadData();
   }, [testId]);
 
   /* =============================
-     RENDER GUARDS (VERY IMPORTANT)
+     CREATE + AUTO-ADD QUESTION
+  ============================== */
+
+  async function handleCreateQuestion(questionPayload) {
+    try {
+      // 1️⃣ Create question in question bank
+      const res = await createQuestion(questionPayload);
+      const questionId = res.data.id;
+
+      // 2️⃣ Attach question to test
+      await addQuestionToTest(testId, {
+        question_id: questionId,
+        marks: 1, // default marks
+      });
+
+      // 3️⃣ Reload test questions
+      await loadData();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to add question to test.");
+    }
+  }
+
+  /* =============================
+     RENDER GUARDS
   ============================== */
 
   if (loading) {
@@ -91,20 +126,20 @@ export default function EditTest() {
 
       {/* Passcode + Share */}
       <section className="section section--tight">
-        <div className="container grid grid-2">
+        <div className="container">
           <PasscodeManager testId={testId} />
           <ShareTest test={test} />
         </div>
       </section>
 
-      {/* Add question */}
+      {/* Create + Auto-add question */}
       <section className="section">
         <div className="container">
-          <CreateQuestion testId={testId} onCreated={loadData} />
+          <CreateQuestion onSubmit={handleCreateQuestion} />
         </div>
       </section>
 
-      {/* Question list */}
+      {/* Test question list */}
       <section className="section section--tight">
         <div className="container">
           <h3>Questions</h3>
@@ -120,7 +155,7 @@ export default function EditTest() {
                   <strong>Q{idx + 1}.</strong>
                   <p>{q.question_text}</p>
                   <p className="text-muted">
-                    Type: {q.question_type}
+                    Type: {q.question_type} · Marks: {q.marks}
                   </p>
                 </div>
               ))}
