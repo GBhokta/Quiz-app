@@ -2,6 +2,9 @@ from rest_framework import serializers
 from .models import Question, Option, Topic
 
 
+
+
+
 class OptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Option

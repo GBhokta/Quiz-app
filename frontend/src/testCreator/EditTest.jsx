@@ -3,27 +3,36 @@ import { useParams } from "react-router-dom";
 
 import {
   getTestById,
+  updateTest,
   getTestQuestions,
-  addQuestionToTest,
 } from "../api/tests.api";
 
-import { createQuestion } from "../api/questions.api";
-
-import CreateQuestion from "./CreateQuestion";
 import PasscodeManager from "./PasscodeManager";
 import ShareTest from "./ShareTest";
+import TestQuestionList from "../pages/TestQuestionList";
+import QuestionTabs from "../pages/QuestionTabs";
+import MyQuestionsList from "../pages/MyQuestionsList";
+import PublicQuestionsList from "../pages/PublicQuestionsList";
+import AddToTestBar from "../pages/AddToTestBar";
+import TestReadinessSummary from "../pages/TestReadinessSummary";
+import CreateQuestion from "./CreateQuestion";
 
 export default function EditTest() {
   const { testId } = useParams();
 
   const [test, setTest] = useState(null);
-  const [questions, setQuestions] = useState([]);
+  const [testQuestions, setTestQuestions] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  /* =============================
-     LOAD TEST + QUESTIONS
-  ============================== */
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [duration, setDuration] = useState("");
+  const [instructions, setInstructions] = useState("");
+
+  const [activeTab, setActiveTab] = useState("my");
+  const [selectedQuestions, setSelectedQuestions] = useState([]);
 
   async function loadData() {
     try {
@@ -35,8 +44,14 @@ export default function EditTest() {
         getTestQuestions(testId),
       ]);
 
-      setTest(testRes.data);
-      setQuestions(questionsRes.data || []);
+      const t = testRes.data;
+
+      setTest(t);
+      setTitle(t.title || "");
+      setDescription(t.description || "");
+      setDuration(t.duration_minutes || "");
+      setInstructions(t.instructions || "");
+      setTestQuestions(questionsRes.data || []);
     } catch (err) {
       console.error(err);
       setError("Failed to load test data.");
@@ -50,33 +65,25 @@ export default function EditTest() {
     loadData();
   }, [testId]);
 
-  /* =============================
-     CREATE + AUTO-ADD QUESTION
-  ============================== */
-
-  async function handleCreateQuestion(questionPayload) {
+  async function handleSaveMeta() {
     try {
-      // 1️⃣ Create question in question bank
-      const res = await createQuestion(questionPayload);
-      const questionId = res.data.id;
-
-      // 2️⃣ Attach question to test
-      await addQuestionToTest(testId, {
-        question_id: questionId,
-        marks: 1, // default marks
+      await updateTest(testId, {
+        title,
+        description,
+        duration_minutes: duration,
+        instructions,
       });
-
-      // 3️⃣ Reload test questions
       await loadData();
+      alert("Test details saved.");
     } catch (err) {
       console.error(err);
-      alert("Failed to add question to test.");
+      alert("Failed to save test details.");
     }
   }
 
-  /* =============================
-     RENDER GUARDS
-  ============================== */
+  /* ===============================
+     Render Guards
+  ================================ */
 
   if (loading) {
     return (
@@ -102,29 +109,71 @@ export default function EditTest() {
     return (
       <div className="page page-center">
         <div className="container">
-          <p className="text-muted">Preparing test…</p>
+          <p className="text-muted">Test not found.</p>
         </div>
       </div>
     );
   }
 
-  /* =============================
-     MAIN UI
-  ============================== */
+  /* ===============================
+     MAIN LAYOUT
+  ================================ */
 
   return (
     <div className="page">
-      {/* Test header */}
+
       <section className="section">
         <div className="container">
           <div className="card">
-            <h2>{test.title}</h2>
-            <p className="text-muted">{test.description}</p>
+            <div className="flex-between">
+              <h2>Edit Test</h2>
+              <span className="text-muted">{test.status}</span>
+            </div>
+
+            <label>
+              <p className="text-muted">Title</p>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </label>
+
+            <label>
+              <p className="text-muted">Description</p>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </label>
+
+            <label>
+              <p className="text-muted">Duration (minutes)</p>
+              <input
+                type="number"
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+              />
+            </label>
+
+            <button className="btn-primary" onClick={handleSaveMeta}>
+              Save Details
+            </button>
           </div>
         </div>
       </section>
 
-      {/* Passcode + Share */}
+      <section className="section section--tight">
+        <div className="container">
+          <div className="card">
+            <h3>Instructions to Students</h3>
+            <textarea
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+            />
+          </div>
+        </div>
+      </section>
+
       <section className="section section--tight">
         <div className="container">
           <PasscodeManager testId={testId} />
@@ -132,37 +181,67 @@ export default function EditTest() {
         </div>
       </section>
 
-      {/* Create + Auto-add question */}
       <section className="section">
         <div className="container">
-          <CreateQuestion onSubmit={handleCreateQuestion} />
+          <TestQuestionList
+            questions={testQuestions}
+            onChange={loadData}
+          />
         </div>
       </section>
 
-      {/* Test question list */}
       <section className="section section--tight">
         <div className="container">
-          <h3>Questions</h3>
+          <QuestionTabs
+            active={activeTab}
+            onChange={setActiveTab}
+          />
 
-          {questions.length === 0 ? (
-            <div className="card">
-              <p className="text-muted">No questions added yet.</p>
-            </div>
-          ) : (
-            <div className="grid grid-auto">
-              {questions.map((q, idx) => (
-                <div key={q.id} className="card">
-                  <strong>Q{idx + 1}.</strong>
-                  <p>{q.question_text}</p>
-                  <p className="text-muted">
-                    Type: {q.question_type} · Marks: {q.marks}
-                  </p>
-                </div>
-              ))}
-            </div>
+          {activeTab === "my" && (
+            <MyQuestionsList
+              selected={selectedQuestions}
+              onSelect={setSelectedQuestions}
+            />
+          )}
+
+          {activeTab === "public" && (
+            <PublicQuestionsList
+              selected={selectedQuestions}
+              onSelect={setSelectedQuestions}
+            />
+          )}
+
+          {activeTab === "create" && (
+            <CreateQuestion
+              onCreated={(question) => {
+                setSelectedQuestions([question.id]);
+                setActiveTab("my");
+              }}
+            />
           )}
         </div>
       </section>
+
+      {selectedQuestions.length > 0 && (
+        <AddToTestBar
+          testId={testId}
+          questionIds={selectedQuestions}
+          onDone={() => {
+            setSelectedQuestions([]);
+            loadData();
+          }}
+        />
+      )}
+
+      <section className="section">
+        <div className="container">
+          <TestReadinessSummary
+            test={test}
+            questions={testQuestions}
+          />
+        </div>
+      </section>
+
     </div>
   );
 }

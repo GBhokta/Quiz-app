@@ -5,14 +5,25 @@ from questions.models import Question
 class AddTestQuestionSerializer(serializers.Serializer):
     question_id = serializers.IntegerField()
     marks = serializers.IntegerField(min_value=1)
-    question_order = serializers.IntegerField(min_value=1)
 
     def validate_question_id(self, value):
         if not Question.objects.filter(id=value).exists():
             raise serializers.ValidationError("Question does not exist")
         return value
+class TestAccessSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TestAccess
+        fields = [
+            "access_code",
+            "is_passcode_required",
+            "passcode_version",
+            "max_attempts_per_user",
+        ]
+
 
 class TestSerializer(serializers.ModelSerializer):
+    access = TestAccessSerializer(read_only=True)
+
     class Meta:
         model = Test
         fields = (
@@ -26,8 +37,10 @@ class TestSerializer(serializers.ModelSerializer):
             "status",
             "is_active",
             "created_at",
+            "access",
         )
         read_only_fields = ("id", "created_at")
+
 class TestCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Test

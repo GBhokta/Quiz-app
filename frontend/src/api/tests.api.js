@@ -22,3 +22,19 @@ export function getTestQuestions(testId) {
 export function addQuestionToTest(testId, payload) {
   return api.post(`/tests/${testId}/questions/`, payload);
 }
+
+export function removeQuestionFromTest(testId, questionId) {
+  return api.delete(`/tests/${testId}/questions/${questionId}/`);
+}
+export function updateTest(testId, payload) {
+  return api.put(`/tests/${testId}/`, payload);
+}
+export function addQuestionsToTest(testId, questions) {
+  return api.post(`/tests/${testId}/questions/`, {
+    questions: questions,
+  });
+}
+
+export function getPasscode(testId) {
+  return api.get(`/tests/${testId}/passcode/`);
+}

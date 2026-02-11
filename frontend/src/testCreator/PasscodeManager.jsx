@@ -1,12 +1,24 @@
-import { useState } from "react";
-import { updatePasscode } from "../api/tests.api";
+import { useState,useEffect } from "react";
+import { updatePasscode,getPasscode } from "../api/tests.api";
 
 export default function PasscodeManager({ testId }) {
   const [passcode, setPasscode] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [currentPasscode, setCurrentPasscode] = useState("");
 
+  useEffect(() => {
+    async function fetchPasscode() {
+      try {
+        const response = await getPasscode(testId);
+        setCurrentPasscode(response.data.access_code);
+      } catch (err) {
+        setError("Failed to load current passcode.");
+      }
+  }
+  fetchPasscode();
+  }, [testId]);
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
@@ -14,9 +26,10 @@ export default function PasscodeManager({ testId }) {
     setMessage("");
 
     try {
-      await updatePasscode(testId, { passcode });
-      setMessage("Passcode updated successfully.");
-      setPasscode("");
+    await updatePasscode(testId, { passcode });
+    setMessage("Passcode updated successfully.");
+    setCurrentPasscode(`Updated (v${prev + 1})`);
+
     } catch {
       setError("Failed to update passcode.");
     } finally {
@@ -26,7 +39,9 @@ export default function PasscodeManager({ testId }) {
 
   return (
     <div className="card">
+      <h3>Current Passcode: {currentPasscode || "Not Set"}</h3>
       <h3>Passcode Settings</h3>
+
 
       <p className="text-muted">
         Changing the passcode will immediately invalidate old access.

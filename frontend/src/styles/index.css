@@ -707,6 +707,11 @@ footer {
   color: white;
 }
 
+.Allquestion {
+  max-width: var(--container-max-width);
+  margin: auto;
+  padding: var(--space-4);
+}
 /* ================================
    END OF BASE DESIGN SYSTEM
 ================================ */

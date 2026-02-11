@@ -25,6 +25,7 @@ import TestPage  from "../test/TestPage";
 
 import Dashboard from "../pages/Dashboard";
 
+import AllQuestionsPage from "../pages/AllQuestionsPage.jsx";
 
 
 export default function RoutesConfig() {
@@ -87,6 +88,14 @@ export default function RoutesConfig() {
             <Dashboard />
           </ProtectedRoute>
         }/>
+            <Route 
+      path="/questions/all"
+      element={
+        <ProtectedRoute>
+          <AllQuestionsPage />
+        </ProtectedRoute>
+      }/>
     </Routes>
+
   );
 }

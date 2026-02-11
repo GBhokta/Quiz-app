@@ -33,6 +33,12 @@ class QuestionListView(generics.ListAPIView):
         topic = self.request.query_params.get("topic")
         difficulty = self.request.query_params.get("difficulty")
         qtype = self.request.query_params.get("type")
+        scope= self.request.query_params.get("scope")
+        if scope == "my":
+            return Question.objects.filter(created_by=user)
+
+        if scope == "public":
+            return Question.objects.filter(is_public=True)
 
         if q:
             qs = qs.filter(question_text__icontains=q)
@@ -62,3 +68,17 @@ class TopicListCreateView(generics.ListCreateAPIView):
     queryset = Topic.objects.all().order_by("name")
     serializer_class = TopicSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+class AllQuestionsView(generics.ListAPIView):
+    serializer_class = QuestionListSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        # creator sees own questions + public questions
+        qs = Question.objects.filter(
+            models.Q(created_by=user) | models.Q(is_public=True)
+        ).prefetch_related("topics")
+
+        return qs.distinct()

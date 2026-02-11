@@ -4,6 +4,7 @@ from .views import (
     QuestionListView,
     QuestionDetailView,
     TopicListCreateView,
+    AllQuestionsView,
 )
 
 urlpatterns = [
@@ -14,4 +15,5 @@ urlpatterns = [
 
     # Topics
     path("topics/", TopicListCreateView.as_view()),     # GET / POST
+    path("all/", AllQuestionsView.as_view()),          # GET all questions
 ]
