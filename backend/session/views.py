@@ -1,11 +1,10 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from django.db import transaction
-from django.db.models import Prefetch
+from django.db.models import Max
 
 from tests.models import (
     Test,
@@ -14,7 +13,6 @@ from tests.models import (
     Response as AttemptResponse,
     ResponseOption,
 )
-from questions.models import Option
 from results.models import Result
 from .serializers import SubmitTestSerializer
 
@@ -22,6 +20,9 @@ from .serializers import SubmitTestSerializer
 # =========================================================
 # START TEST
 # =========================================================
+
+
+
 
 class StartTestView(APIView):
     permission_classes = [AllowAny]
@@ -43,109 +44,70 @@ class StartTestView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        access = getattr(test, "access", None)
-        if not access:
-            return Response(
-                {"detail": "Test access configuration missing"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Guest-safe user handling
+        # Logged user OR guest
         user = request.user if request.user.is_authenticated else None
 
-        # -------------------------------
-        # ATTEMPT COUNT (only for logged in users)
-        # -------------------------------
-        if user:
-            attempt_count = TestAttempt.objects.filter(
-                test=test,
-                user=user
-            ).count()
-
-            if access.max_attempts_per_user and attempt_count >= access.max_attempts_per_user:
-                return Response(
-                    {"detail": "Maximum attempts reached"},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-
-            in_progress = TestAttempt.objects.filter(
-                test=test,
-                user=user,
-                status=TestAttempt.Status.IN_PROGRESS
-            ).first()
-
-            if in_progress:
-                return self._build_test_payload(in_progress)
-
-            attempt_number = attempt_count + 1
-        else:
-            attempt_number = 1
-
-        # -------------------------------
-        # CREATE ATTEMPT
-        # -------------------------------
-        attempt = TestAttempt.objects.create(
+        # Prevent duplicate in-progress attempt
+        existing_attempt = TestAttempt.objects.filter(
             test=test,
             user=user,
-            attempt_number=attempt_number,
-            passcode_version_used=access.passcode_version
+            status=TestAttempt.Status.IN_PROGRESS
+        ).first()
+
+        if existing_attempt:
+            attempt = existing_attempt
+        else:
+            last_number = (
+                TestAttempt.objects
+                .filter(test=test, user=user)
+                .aggregate(max_number=Max("attempt_number"))
+            )["max_number"] or 0
+
+            attempt = TestAttempt.objects.create(
+                test=test,
+                user=user,
+                attempt_number=last_number + 1,
+                passcode_version_used=test.access.passcode_version,
+            )
+
+        # Fetch questions
+        test_questions = (
+            TestQuestion.objects
+            .filter(test=test)
+            .select_related("question")
+            .prefetch_related("question__options")
         )
 
-        return self._build_test_payload(attempt)
-
-    # =========================================================
-    # BUILD FULL TEST PAYLOAD (QUESTIONS + OPTIONS)
-    # =========================================================
-    def _build_test_payload(self, attempt):
-        test = attempt.test
-
-        test_questions = TestQuestion.objects.filter(
-            test=test
-        ).select_related("question").prefetch_related(
-            Prefetch("question__options", queryset=Option.objects.all())
-        )
-
-        questions_data = []
+        question_data = []
 
         for tq in test_questions:
-            q = tq.question
+            question = tq.question
 
-            questions_data.append({
-                "id": q.id,
-                "text": q.question_text,
-                "type": q.question_type,
-                "marks": tq.marks,
+            question_data.append({
+                "id": question.id,
+                "text": question.question_text,
+                "type": question.question_type,
                 "options": [
                     {
                         "id": opt.id,
-                        "text": opt.option_text
+                        "text": opt.option_text,
                     }
-                    for opt in q.options.all()
+                    for opt in question.options.all()
                 ]
             })
 
-        return Response(
-            {
-                "attempt_id": attempt.id,
-                "attempt_number": attempt.attempt_number,
-                "status": attempt.status,
-                "test_title": test.title,
-                "duration_minutes": test.duration_minutes,
-                "total_marks": test.total_marks,
-                "questions": questions_data,
-            },
-            status=status.HTTP_200_OK
-        )
-
-
+        return Response({
+            "attempt_id": attempt.id,
+            "duration_minutes": test.duration_minutes,
+            "questions": question_data,
+        }, status=status.HTTP_201_CREATED)
 # =========================================================
 # SUBMIT TEST
 # =========================================================
 
 class SubmitTestView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
-    @transaction.atomic
     def post(self, request):
         serializer = SubmitTestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -153,11 +115,7 @@ class SubmitTestView(APIView):
         attempt_id = serializer.validated_data["attempt_id"]
         answers = serializer.validated_data["answers"]
 
-        attempt = get_object_or_404(
-            TestAttempt,
-            id=attempt_id,
-            user=request.user
-        )
+        attempt = get_object_or_404(TestAttempt, id=attempt_id)
 
         if attempt.status != TestAttempt.Status.IN_PROGRESS:
             return Response(
@@ -165,38 +123,17 @@ class SubmitTestView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if not attempt.test.is_active:
-            return Response(
-                {"detail": "Test is no longer active"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        duration_seconds = attempt.test.duration_minutes * 60
-        elapsed = (timezone.now() - attempt.started_at).total_seconds()
-
-        if elapsed > duration_seconds:
-            attempt.status = TestAttempt.Status.EXPIRED
-            attempt.submitted_at = timezone.now()
-            attempt.save(update_fields=["status", "submitted_at"])
-            return Response(
-                {"detail": "Time expired"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        test_questions = TestQuestion.objects.filter(
-            test=attempt.test
-        ).select_related("question").prefetch_related(
-            Prefetch("question__options", queryset=Option.objects.all())
+        test_questions = (
+            TestQuestion.objects
+            .filter(test=attempt.test)
+            .select_related("question")
+            .prefetch_related("question__options")
         )
 
         correct = 0
         wrong = 0
         unattempted = 0
         total_marks = 0
-        total_questions = test_questions.count()
-
-        response_objects = []
-        response_option_objects = []
 
         for tq in test_questions:
             question = tq.question
@@ -209,6 +146,7 @@ class SubmitTestView(APIView):
             is_correct = False
             marks_awarded = 0
 
+            # ---------------- MCQ ----------------
             if question.question_type == "MCQ":
                 correct_option = next(
                     (opt for opt in question.options.all() if opt.is_correct),
@@ -217,6 +155,7 @@ class SubmitTestView(APIView):
                 if correct_option and str(correct_option.id) == str(user_answer):
                     is_correct = True
 
+            # ---------------- MSQ ----------------
             elif question.question_type == "MSQ":
                 correct_ids = {
                     str(opt.id)
@@ -227,9 +166,18 @@ class SubmitTestView(APIView):
                 if user_ids == correct_ids:
                     is_correct = True
 
+            # ---------------- NAT ----------------
+# ---------------- NAT ----------------
             elif question.question_type == "NAT":
-                if str(question.correct_answer) == str(user_answer):
-                    is_correct = True
+                if question.correct_numerical_answer is not None:
+                    try:
+                        user_value = float(user_answer)
+                        correct_value = float(question.correct_numerical_answer)
+
+                        if user_value == correct_value:
+                            is_correct = True
+                    except (ValueError, TypeError):
+                        is_correct = False
 
             if is_correct:
                 correct += 1
@@ -238,59 +186,114 @@ class SubmitTestView(APIView):
             else:
                 wrong += 1
 
-            response_objects.append(
-                AttemptResponse(
-                    attempt=attempt,
-                    question=question,
-                    is_correct=is_correct,
-                    marks_obtained=marks_awarded
-                )
+            attempt_response, _ = AttemptResponse.objects.update_or_create(
+                attempt=attempt,
+                question=question,
+                defaults={
+                    "numerical_answer": user_answer if question.question_type == "NAT" else None,
+                    "is_correct": is_correct,
+                    "marks_obtained": marks_awarded,
+                }
             )
 
-        AttemptResponse.objects.bulk_create(response_objects)
+            # Save selected options safely
+            if question.question_type in ["MCQ", "MSQ"]:
 
-        for response in AttemptResponse.objects.filter(attempt=attempt):
-            user_answer = answers.get(str(response.question_id))
+                selected_ids = (
+                    [user_answer]
+                    if question.question_type == "MCQ"
+                    else user_answer
+                )
 
-            if response.question.question_type == "MCQ":
-                option = Option.objects.filter(id=user_answer).first()
-                if option:
-                    response_option_objects.append(
-                        ResponseOption(response=response, option=option)
-                    )
+                # 🔥 VERY IMPORTANT
+                # First delete old options for this response
+                attempt_response.selected_options.all().delete()
 
-            elif response.question.question_type == "MSQ":
-                for opt_id in user_answer:
-                    option = Option.objects.filter(id=opt_id).first()
+                # Then recreate fresh
+                for opt_id in selected_ids:
+                    option = question.options.filter(id=opt_id).first()
                     if option:
-                        response_option_objects.append(
-                            ResponseOption(response=response, option=option)
+                        ResponseOption.objects.create(
+                            response=attempt_response,
+                            option=option
                         )
 
-        ResponseOption.objects.bulk_create(response_option_objects)
-
+        # Finalize attempt
         attempt.status = TestAttempt.Status.SUBMITTED
         attempt.submitted_at = timezone.now()
         attempt.score = total_marks
         attempt.save(update_fields=["status", "submitted_at", "score"])
 
-        percentage = (total_marks / (attempt.test.total_marks or 1)) * 100
+        percentage = (
+            total_marks / (attempt.test.total_marks or 1)
+        ) * 100
 
         result = Result.objects.create(
             attempt=attempt,
-            total_questions=total_questions,
+            total_questions=test_questions.count(),
             correct=correct,
             wrong=wrong,
             unattempted=unattempted,
             percentage=percentage
         )
 
-        return Response(
-            {
-                "detail": "Test submitted successfully",
-                "result_id": result.id,
-                "score": total_marks,
-                "percentage": percentage
-            },
-            status=status.HTTP_200_OK
+        return Response({
+            "result_id": result.id,
+            "score": total_marks,
+            "percentage": percentage
+        }, status=status.HTTP_200_OK)
+
+
+# =========================================================
+# RESULT DETAIL VIEW
+# =========================================================
+
+class ResultDetailView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, result_id):
+        result = get_object_or_404(Result, id=result_id)
+
+        attempt = result.attempt
+
+        responses = (
+            AttemptResponse.objects
+            .filter(attempt=attempt)
+            .select_related("question")
+            .prefetch_related("question__options", "selected_options")
         )
+
+        question_data = []
+
+        for resp in responses:
+            question = resp.question
+
+            selected_option_ids = [
+                opt.option.id
+                for opt in resp.selected_options.all()
+            ]
+
+            correct_option_ids = [
+                opt.id
+                for opt in question.options.filter(is_correct=True)
+            ]
+
+            question_data.append({
+                "question_id": question.id,
+                "question_text": question.question_text,
+                "question_type": question.question_type,
+                "marks_awarded": resp.marks_obtained,
+                "is_correct": resp.is_correct,
+                "explanation": question.explanation,
+                "selected_options": selected_option_ids,
+                "correct_options": correct_option_ids,
+            })
+
+        return Response({
+            "score": attempt.score,
+            "percentage": result.percentage,
+            "correct": result.correct,
+            "wrong": result.wrong,
+            "unattempted": result.unattempted,
+            "questions": question_data
+        })
