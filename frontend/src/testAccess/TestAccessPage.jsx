@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { validateAccess } from "../api/access.api";
 
 export default function TestAccessPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [formData, setFormData] = useState({
-    test_code: "",
+    test_code: searchParams.get("code") || "",
     passcode: "",
   });
 
@@ -15,7 +16,10 @@ export default function TestAccessPage() {
 
   function handleChange(e) {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   }
 
   async function handleSubmit(e) {
@@ -26,12 +30,11 @@ export default function TestAccessPage() {
     try {
       const res = await validateAccess(formData);
 
-      // Store session info (NOT JWT)
       sessionStorage.setItem("session_token", res.data.session_token);
       sessionStorage.setItem("test_id", res.data.test_id);
 
       navigate("/session/start");
-    } catch {
+    } catch (err) {
       setError("Invalid test code or passcode.");
     } finally {
       setLoading(false);
@@ -47,8 +50,8 @@ export default function TestAccessPage() {
 
             {error && <p className="text-error">{error}</p>}
 
-            <form className="form-stack" onSubmit={handleSubmit}>
-              <div className="form-field">
+            <form onSubmit={handleSubmit}>
+              <div>
                 <label>Test Code</label>
                 <input
                   type="text"
@@ -59,7 +62,7 @@ export default function TestAccessPage() {
                 />
               </div>
 
-              <div className="form-field">
+              <div>
                 <label>Passcode</label>
                 <input
                   type="password"

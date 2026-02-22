@@ -1,5 +1,6 @@
 import api from "./axios";
 
-export function validateAccess(payload) {
-  return api.post("/access/validate/", payload);
-}
+
+export const validateAccess = (data) => {
+  return api.post("/access/validate/", data);   
+};

@@ -1,3 +1,4 @@
+from tkinter.filedialog import test
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -247,4 +248,55 @@ class RemoveQuestionFromTestView(APIView):
         return Response(
             {"detail": "Question removed from test"},
             status=status.HTTP_204_NO_CONTENT,
+        )
+
+
+class PublishTestView(APIView):
+    permission_classes = [IsAuthenticated, IsTestMaker]
+
+    def post(self, request, test_id):
+        test = get_object_or_404(
+            Test,
+            id=test_id,
+            created_by=request.user
+        )
+
+        # ---- SERVER SIDE VALIDATION ----
+
+        # 1️⃣ Must have at least one question
+        if not TestQuestion.objects.filter(test=test).exists():
+            return Response(
+                {"detail": "Add at least one question before publishing"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 2️⃣ Duration must be set
+        if not test.duration_minutes or test.duration_minutes <= 0:
+            return Response(
+                {"detail": "Set test duration before publishing"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 3️⃣ Passcode must exist and version > 0
+        if not hasattr(test, "access") or test.access.passcode_version <= 0:
+            return Response(
+                {"detail": "Set test passcode before publishing"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 4️⃣ Already published check
+        if test.status == "PUBLISHED":
+            return Response(
+                {"detail": "Test already published"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ---- PUBLISH ----
+        test.status = "PUBLISHED"
+        test.is_active = True
+        test.save()
+
+        return Response(
+            {"detail": "Test published successfully"},
+            status=status.HTTP_200_OK
         )

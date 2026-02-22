@@ -38,3 +38,8 @@ export function addQuestionsToTest(testId, questions) {
 export function getPasscode(testId) {
   return api.get(`/tests/${testId}/passcode/`);
 }
+
+
+export function publishTest(testId) {
+  return api.post(`/tests/${testId}/publish/`);
+}

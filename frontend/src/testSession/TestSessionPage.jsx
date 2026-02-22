@@ -1,292 +1,225 @@
 import { useEffect, useState } from "react";
-import { startSession, submitSession } from "../api/session.api";
 import { useNavigate } from "react-router-dom";
-
-import QuestionRenderer from "./QuestionRenderer";
-import Timer from "./Timer";
-import QuestionPalette from "./QuestionPalette";
+import api from "../api/axios";
 
 export default function TestSessionPage() {
   const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [session, setSession] = useState(null);
+  const [attemptId, setAttemptId] = useState(null);
   const [questions, setQuestions] = useState([]);
-
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [visited, setVisited] = useState({});
-  const [marked, setMarked] = useState({});
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  /* ---------------- Answer Handling ---------------- */
-
-  function handleAnswerChange(questionId, value) {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionId]: value,
-    }));
-  }
-
-  /* ---------------- Navigation ---------------- */
-
-  function goNext() {
-    if (currentIndex < questions.length - 1) {
-      setCurrentIndex((i) => i + 1);
-    }
-  }
-
-  function goPrev() {
-    if (currentIndex > 0) {
-      setCurrentIndex((i) => i - 1);
-    }
-  }
-
-  /* ---------------- Mark for Review ---------------- */
-
-  function toggleMark() {
-    const qid = questions[currentIndex].id;
-    setMarked((prev) => ({
-      ...prev,
-      [qid]: !prev[qid],
-    }));
-  }
-
-  /* ---------------- Timer ---------------- */
-
-  function handleTimeUp() {
-    handleSubmit(true);
-  }
-
-  /* ---------------- Submit ---------------- */
-
-  async function handleSubmit(isAuto = false) {
-    try {
-      setLoading(true);
-
-      await submitSession({
-        session_id: session.id,
-        answers: answers,
-      });
-
-      sessionStorage.removeItem("session_token");
-      sessionStorage.removeItem("test_id");
-      sessionStorage.removeItem(`session_state_${session.id}`);
-      sessionStorage.removeItem("started_at");
-
-      navigate(`/results/${session.id}`);
-    } catch {
-      setError("Failed to submit test. Please try again.");
-      setLoading(false);
-    }
-  }
-
-  /* ---------------- Session Init ---------------- */
-
+  // ===============================
+  // START TEST
+  // ===============================
   useEffect(() => {
-    async function initSession() {
-      const testId = sessionStorage.getItem("test_id");
-      const sessionToken = sessionStorage.getItem("session_token");
+    const test_id = sessionStorage.getItem("test_id");
+    const session_token = sessionStorage.getItem("session_token");
 
-      if (!testId || !sessionToken) {
-        setError("Session expired. Please re-enter test.");
-        setLoading(false);
-        return;
-      }
-
+    async function startTest() {
       try {
-        const res = await startSession({
-          test_id: testId,
-          session_token: sessionToken,
+        const res = await api.post("/session/start/", {
+          test_id,
+          session_token,
         });
 
-        setSession(res.data);
-        setQuestions(res.data.questions || []);
-
-        // timer start (only once)
-        if (!sessionStorage.getItem("started_at")) {
-          sessionStorage.setItem("started_at", Date.now().toString());
-        }
-
-        // restore saved state
-        const saved = sessionStorage.getItem(
-          `session_state_${res.data.id}`
-        );
-
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setCurrentIndex(parsed.currentIndex ?? 0);
-          setAnswers(parsed.answers ?? {});
-          setVisited(parsed.visited ?? {});
-          setMarked(parsed.marked ?? {});
-        }
-      } catch {
-        setError("Unable to start test session.");
+        setAttemptId(res.data.attempt_id);
+        setQuestions(res.data.questions);
+        setTimeLeft(res.data.duration_minutes * 60);
+      } catch (err) {
+        console.error(err);
       } finally {
         setLoading(false);
       }
     }
 
-    initSession();
+    startTest();
   }, []);
 
-  /* ---------------- Persist State ---------------- */
-
+  // ===============================
+  // TIMER
+  // ===============================
   useEffect(() => {
-    if (!session) return;
+    if (!timeLeft) return;
 
-    const state = {
-      currentIndex,
-      answers,
-      visited,
-      marked,
-    };
+    if (timeLeft <= 0) {
+      handleSubmit();
+      return;
+    }
 
-    sessionStorage.setItem(
-      `session_state_${session.id}`,
-      JSON.stringify(state)
-    );
-  }, [currentIndex, answers, visited, marked, session]);
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => prev - 1);
+    }, 1000);
 
-  /* ---------------- Track Visited ---------------- */
+    return () => clearInterval(interval);
+  }, [timeLeft]);
 
-  useEffect(() => {
-    if (questions[currentIndex]) {
-      setVisited((prev) => ({
+  // ===============================
+  // HANDLE ANSWER CHANGE
+  // ===============================
+  function handleAnswerChange(questionId, value, type) {
+    if (type === "MSQ") {
+      setAnswers((prev) => {
+        const existing = prev[questionId] || [];
+        if (existing.includes(value)) {
+          return {
+            ...prev,
+            [questionId]: existing.filter((v) => v !== value),
+          };
+        } else {
+          return {
+            ...prev,
+            [questionId]: [...existing, value],
+          };
+        }
+      });
+    } else {
+      setAnswers((prev) => ({
         ...prev,
-        [questions[currentIndex].id]: true,
+        [questionId]: value,
       }));
     }
-  }, [currentIndex, questions]);
-
-  /* ---------------- Guards ---------------- */
-
-  if (loading) {
-    return (
-      <div className="page page-center">
-        <div className="container">
-          <p className="loader">Loading test…</p>
-        </div>
-      </div>
-    );
   }
 
-  if (error) {
-    return (
-      <div className="page page-center">
-        <div className="container">
-          <p className="text-error">{error}</p>
-        </div>
-      </div>
-    );
+  // ===============================
+  // SUBMIT TEST
+  // ===============================
+  async function handleSubmit() {
+    try {
+      const res = await api.post("/session/submit/", {
+        attempt_id: attemptId,
+        answers,
+      });
+
+      navigate(`/results/${res.data.result_id}`);
+    } catch (err) {
+      console.error(err);
+    }
   }
 
-  if (questions.length === 0) {
-    return (
-      <div className="page page-center">
-        <div className="container">
-          <p className="text-muted">No questions available.</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div>Loading test...</div>;
+  if (!questions.length) return <div>No questions found.</div>;
 
   const currentQuestion = questions[currentIndex];
 
-  /* ---------------- Render ---------------- */
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
 
   return (
     <div className="page">
-      {/* Header */}
-      <section className="section section--tight">
-        <div className="container">
-          <div className="card flex-between">
-            <div>
-              <h2>{session?.test_title || "Test"}</h2>
-              <p className="text-muted">
-                Question {currentIndex + 1} of {questions.length}
-              </p>
-            </div>
-
-            <Timer
-              durationMinutes={session?.duration_minutes || 0}
-              onTimeUp={handleTimeUp}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Question */}
       <section className="section">
         <div className="container">
-          <div className="card">
-            <QuestionRenderer
-              question={currentQuestion}
-              answer={answers[currentQuestion.id]}
-              onAnswerChange={handleAnswerChange}
-            />
 
-            <button type="button" onClick={toggleMark}>
-              {marked[currentQuestion.id]
-                ? "Unmark Review"
-                : "Mark for Review"}
-            </button>
+          {/* Timer */}
+          <div className="card-box">
+            <h3>
+              Time Left: {minutes}:{seconds < 10 ? `0${seconds}` : seconds}
+            </h3>
+          </div>
 
-            <div className="btn-row">
+          {/* Question */}
+          <div className="card-box" style={{ marginTop: "20px" }}>
+            <h4>
+              Question {currentIndex + 1} of {questions.length}
+            </h4>
+
+            <p>{currentQuestion.text}</p>
+
+            {/* MCQ */}
+            {currentQuestion.type === "MCQ" &&
+              currentQuestion.options.map((opt) => (
+                <div key={opt.id}>
+                  <input
+                    type="radio"
+                    name={`q-${currentQuestion.id}`}
+                    value={opt.id}
+                    checked={
+                      answers[currentQuestion.id] === String(opt.id)
+                    }
+                    onChange={() =>
+                      handleAnswerChange(
+                        currentQuestion.id,
+                        String(opt.id),
+                        "MCQ"
+                      )
+                    }
+                  />
+                  {opt.text}
+                </div>
+              ))}
+
+            {/* MSQ */}
+            {currentQuestion.type === "MSQ" &&
+              currentQuestion.options.map((opt) => (
+                <div key={opt.id}>
+                  <input
+                    type="checkbox"
+                    value={opt.id}
+                    checked={
+                      answers[currentQuestion.id]?.includes(String(opt.id)) ||
+                      false
+                    }
+                    onChange={() =>
+                      handleAnswerChange(
+                        currentQuestion.id,
+                        String(opt.id),
+                        "MSQ"
+                      )
+                    }
+                  />
+                  {opt.text}
+                </div>
+              ))}
+
+            {/* NAT */}
+            {currentQuestion.type === "NAT" && (
+              <input
+                type="text"
+                value={answers[currentQuestion.id] || ""}
+                onChange={(e) =>
+                  handleAnswerChange(
+                    currentQuestion.id,
+                    e.target.value,
+                    "NAT"
+                  )
+                }
+              />
+            )}
+          </div>
+
+          {/* Navigation */}
+          <div style={{ marginTop: "20px" }}>
+            {currentIndex > 0 && (
               <button
                 className="btn-primary"
-                type="button"
-                onClick={goPrev}
-                disabled={currentIndex === 0}
+                onClick={() => setCurrentIndex((prev) => prev - 1)}
               >
                 Previous
               </button>
+            )}
 
+            {currentIndex < questions.length - 1 ? (
               <button
                 className="btn-primary"
-                type="button"
-                onClick={goNext}
-                disabled={currentIndex === questions.length - 1}
+                style={{ marginLeft: "10px" }}
+                onClick={() => setCurrentIndex((prev) => prev + 1)}
               >
                 Next
               </button>
-
+            ) : (
               <button
                 className="btn-primary"
-                type="button"
-                onClick={() => handleSubmit(false)}
+                style={{ marginLeft: "10px" }}
+                onClick={handleSubmit}
               >
                 Submit Test
               </button>
-            </div>
+            )}
           </div>
-        </div>
-      </section>
 
-      {/* Palette */}
-      <section className="section section--tight">
-        <div className="container">
-          <QuestionPalette
-            questions={questions}
-            currentIndex={currentIndex}
-            setCurrentIndex={setCurrentIndex}
-            answers={answers}
-            visited={visited}
-            marked={marked}
-          />
-
-          <div className="card">
-            <h4>Legend</h4>
-            <ul>
-              <li className="text-muted">⬜ Not Visited</li>
-              <li className="text-muted">⬛ Visited</li>
-              <li className="text-success">Answered</li>
-              <li className="text-warning">Marked for Review</li>
-              <li style={{ color: "#7c3aed" }}>
-                Marked + Answered
-              </li>
-            </ul>
-          </div>
         </div>
       </section>
     </div>

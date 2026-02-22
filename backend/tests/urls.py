@@ -3,6 +3,7 @@ from .views import (
     AddTestQuestionsView,
     CreateTestView,
     MyTestsView,
+    PublishTestView,
     RemoveQuestionFromTestView,
     TestDetailView,
     ChangePasscodeView,
@@ -22,6 +23,8 @@ urlpatterns = [
         "<int:test_id>/questions/<int:question_id>/",
         RemoveQuestionFromTestView.as_view(),
     ),
+    path("<int:test_id>/publish/", PublishTestView.as_view()),
+
 
 ]
 

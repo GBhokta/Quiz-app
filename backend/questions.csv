@@ -1,0 +1,51 @@
+topic,type,difficulty,text,explanation,opt1,opt1_correct,opt2,opt2_correct,opt3,opt3_correct,opt4,opt4_correct,numerical_answer
+Computer Science,MCQ,EASY,"What does HTML stand for?","HTML is the standard markup language for creating Web pages.","HyperText Markup Language",True,"HyperText Machine Language",False,"HyperLoop Machine Language",False,"HighText Markup Language",False,
+Computer Science,MSQ,MEDIUM,"Which of the following are valid HTTP methods?","GET, POST, and PUT are standard HTTP methods used in REST APIs.","GET",True,"POST",True,"PUT",True,"SEND",False,
+Computer Science,NAT,EASY,"What is the standard HTTP status code for 'Not Found'?","The 404 status code indicates that the server cannot find the requested resource.",,,,,,,,,404
+Computer Science,MCQ,MEDIUM,"What does CSS stand for?","Cascading Style Sheets are used to format the layout of Web pages.","Computer Style Sheets",False,"Creative Style Sheets",False,"Cascading Style Sheets",True,"Colorful Style Sheets",False,
+Computer Science,MSQ,HARD,"Which of these are programming languages?","Python, Java, and C++ are programming languages. HTML is a markup language.","Python",True,"Java",True,"HTML",False,"C++",True,
+Computer Science,NAT,MEDIUM,"In what year was the Python programming language first released?","Guido van Rossum released Python 0.9.0 in 1991.",,,,,,,,,1991
+Computer Science,MCQ,EASY,"What is the brain of the computer?","The CPU (Central Processing Unit) acts as the brain of the computer.","RAM",False,"Motherboard",False,"GPU",False,"CPU",True,
+Computer Science,MSQ,MEDIUM,"Which of the following are relational database management systems?","MySQL and PostgreSQL are RDBMS. MongoDB is NoSQL, and Redis is an in-memory store.","MySQL",True,"MongoDB",False,"PostgreSQL",True,"Redis",False,
+Computer Science,NAT,HARD,"What is the decimal equivalent of the binary number 1010?","1010 in binary is (1*8) + (0*4) + (1*2) + (0*1) = 10.",,,,,,,,,10
+Computer Science,MCQ,MEDIUM,"Which company created React?","React is a JavaScript library for building user interfaces, maintained by Meta (Facebook).","Google",False,"Meta",True,"Microsoft",False,"Apple",False,
+Mathematics,MCQ,EASY,"What is 7 multiplied by 8?","7 times 8 equals 56.","54",False,"56",True,"62",False,"64",False,
+Mathematics,MSQ,MEDIUM,"Which of the following numbers are prime?","A prime number is only divisible by 1 and itself.","2",True,"9",False,"11",True,"15",False,
+Mathematics,NAT,EASY,"What is the square root of 144?","12 multiplied by 12 equals 144.",,,,,,,,,12
+Mathematics,MCQ,MEDIUM,"What is the value of Pi to two decimal places?","Pi is approximately equal to 3.14159...","3.12",False,"3.14",True,"3.16",False,"3.18",False,
+Mathematics,MSQ,HARD,"Which of the following are Pythagorean triples?","A Pythagorean triple consists of three positive integers a, b, and c, such that a^2 + b^2 = c^2.","3, 4, 5",True,"5, 12, 13",True,"6, 8, 10",True,"7, 9, 11",False,
+Mathematics,NAT,MEDIUM,"What is 5 factorial (5!)?","5! = 5 * 4 * 3 * 2 * 1 = 120.",,,,,,,,,120
+Mathematics,MCQ,HARD,"What is the derivative of 3x^2?","Using the power rule, bring down the 2 and multiply by 3 to get 6x.","3x",False,"6x",True,"x^2",False,"6",False,
+Mathematics,MSQ,EASY,"Which of these fractions are equivalent to 1/2?","2/4 and 4/8 simplify to 1/2.","2/4",True,"3/5",False,"4/8",True,"5/9",False,
+Mathematics,NAT,HARD,"If 3x + 7 = 22, what is the value of x?","Subtract 7 from 22 to get 15, then divide by 3 to get 5.",,,,,,,,,5
+Mathematics,MCQ,MEDIUM,"What is the sum of the interior angles of a triangle?","The interior angles of any triangle always add up to 180 degrees.","90 degrees",False,"180 degrees",True,"360 degrees",False,"270 degrees",False,
+Physics,MCQ,EASY,"Who formulated the laws of motion?","Sir Isaac Newton formulated the three laws of motion.","Albert Einstein",False,"Galileo Galilei",False,"Isaac Newton",True,"Nikola Tesla",False,
+Physics,MSQ,MEDIUM,"Which of the following are states of matter?","Solid, liquid, and gas are the primary states of matter. Energy is not a state of matter.","Solid",True,"Liquid",True,"Gas",True,"Energy",False,
+Physics,NAT,EASY,"What is the boiling point of water in Celsius?","Water boils at 100 degrees Celsius at standard atmospheric pressure.",,,,,,,,,100
+Physics,MCQ,MEDIUM,"What is the SI unit of force?","The Newton is the SI unit of force, named after Isaac Newton.","Joule",False,"Watt",False,"Newton",True,"Pascal",False,
+Physics,MSQ,HARD,"Which of the following are fundamental forces of nature?","Gravity and Electromagnetism are fundamental forces. Friction and Tension are derived forces.","Gravity",True,"Friction",False,"Electromagnetism",True,"Tension",False,
+Physics,NAT,HARD,"What is the approximate speed of light in a vacuum in km/s?","The speed of light is approximately 299,792 km/s, often rounded to 300,000 for simplicity.",,,,,,,,,299792
+Physics,MCQ,HARD,"What particle is responsible for carrying the electromagnetic force?","The photon is the gauge boson responsible for electromagnetism.","Electron",False,"Proton",False,"Gluon",False,"Photon",True,
+Physics,MSQ,MEDIUM,"Which of these are renewable energy sources?","Solar and Wind are renewable. Coal and Natural Gas are fossil fuels.","Solar",True,"Coal",False,"Wind",True,"Natural Gas",False,
+Physics,NAT,MEDIUM,"What is the standard acceleration due to gravity on Earth (in m/s^2)?","Standard gravity is approximately 9.8 or 9.81 m/s^2.",,,,,,,,,9.81
+Physics,MCQ,EASY,"What type of charge does an electron have?","Electrons are subatomic particles with a negative elementary electric charge.","Positive",False,"Negative",True,"Neutral",False,"Variable",False,
+History,MCQ,EASY,"Who was the first President of the United States?","George Washington served as the first president from 1789 to 1797.","Thomas Jefferson",False,"John Adams",False,"George Washington",True,"Abraham Lincoln",False,
+History,MSQ,MEDIUM,"Which of these countries were part of the Allied Powers in WWII?","The UK, USA, and USSR were major Allied powers. Italy was part of the Axis powers.","United Kingdom",True,"United States",True,"Soviet Union",True,"Italy",False,
+History,NAT,MEDIUM,"In what year did the Titanic sink?","The RMS Titanic sank on April 15, 1912. ",,,,,,,,,1912
+History,MCQ,HARD,"Who was the first Emperor of Rome?","Augustus (formerly Octavian) became the first Roman Emperor in 27 BC.","Julius Caesar",False,"Nero",False,"Augustus",True,"Caligula",False,
+History,MSQ,EASY,"Which of these ancient civilizations built pyramids?","Both the Egyptians and the Maya built pyramids.","Egyptians",True,"Romans",False,"Maya",True,"Celts",False,
+History,NAT,HARD,"In what year did the Berlin Wall fall?","The fall of the Berlin Wall occurred on November 9, 1989.",,,,,,,,,1989
+History,MCQ,MEDIUM,"Who wrote the 'I Have a Dream' speech?","Martin Luther King Jr. delivered this historic speech in 1963.","Malcolm X",False,"Martin Luther King Jr.",True,"John F. Kennedy",False,"Nelson Mandela",False,
+History,MSQ,HARD,"Which of the following were original 13 colonies of the US?","Virginia and New York were original colonies. Florida and Ohio were not.","Virginia",True,"Florida",False,"New York",True,"Ohio",False,
+History,NAT,EASY,"In what year did World War II end?","World War II concluded in 1945.",,,,,,,,,1945
+History,MCQ,MEDIUM,"Which empire built Machu Picchu?","The Incan Empire built Machu Picchu in the 15th century.","Aztec",False,"Maya",False,"Inca",True,"Olmec",False,
+Geography,MCQ,EASY,"What is the largest ocean on Earth?","The Pacific Ocean is the largest and deepest of Earth's oceanic divisions.","Atlantic Ocean",False,"Indian Ocean",False,"Arctic Ocean",False,"Pacific Ocean",True,
+Geography,MSQ,MEDIUM,"Which of these countries are in South America?","Brazil and Argentina are in South America. Mexico is in North America, and Spain is in Europe.","Brazil",True,"Mexico",False,"Argentina",True,"Spain",False,
+Geography,NAT,EASY,"How many continents are there on Earth?","There are generally considered to be 7 continents.",,,,,,,,,7
+Geography,MCQ,MEDIUM,"What is the capital of Australia?","Canberra is the capital city of Australia, chosen as a compromise between Sydney and Melbourne.","Sydney",False,"Melbourne",False,"Canberra",True,"Perth",False,
+Geography,MSQ,HARD,"Which of the following countries border France?","Spain, Germany, and Italy all share land borders with France.","Spain",True,"Germany",True,"Italy",True,"Poland",False,
+Geography,NAT,HARD,"What is the approximate height of Mount Everest in meters?","Mount Everest's officially recognized height is 8,848 meters.",,,,,,,,,8848
+Geography,MCQ,EASY,"Which country has the largest land area?","Russia is the largest country in the world by surface area.","Canada",False,"China",False,"United States",False,"Russia",True,
+Geography,MSQ,MEDIUM,"Which of these are African countries?","Egypt and Nigeria are in Africa. Peru is in South America, and Thailand is in Asia.","Egypt",True,"Peru",False,"Nigeria",True,"Thailand",False,
+Geography,NAT,MEDIUM,"How many US states are there?","There are 50 states in the United States of America.",,,,,,,,,50
+Geography,MCQ,HARD,"What is the longest river in the world?","While debated by some, the Nile is traditionally considered the longest river in the world.","Amazon",False,"Nile",True,"Yangtze",False,"Mississippi",False

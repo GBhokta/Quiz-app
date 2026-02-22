@@ -1,6 +1,11 @@
-export default function TestReadinessSummary({ test, questions }) {
+import axios from "axios";
+import { useState } from "react";
+import { publishTest } from "../api/tests.api";
 
-  // Safety guard (extra protection)
+export default function TestReadinessSummary({ test, questions, onPublished }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   if (!test) return null;
 
   const hasQuestions = questions.length > 0;
@@ -17,26 +22,41 @@ export default function TestReadinessSummary({ test, questions }) {
 
   const canPublish = checks.every(c => c.ok);
 
+  const handlePublish = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      await publishTest(test.id);
+
+      if (onPublished) onPublished();  // refresh parent
+    } catch (err) {
+      setError(err.response?.data?.error || "Failed to publish");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="card">
       <h3>Test Readiness</h3>
 
       <ul>
         {checks.map((c) => (
-          <li
-            key={c.label}
-            className={c.ok ? "text-success" : "text-error"}
-          >
+          <li key={c.label} className={c.ok ? "text-success" : "text-error"}>
             {c.ok ? "✓" : "✗"} {c.label}
           </li>
         ))}
       </ul>
 
+      {error && <p className="text-error">{error}</p>}
+
       <button
         className="btn-primary"
-        disabled={!canPublish}
+        disabled={!canPublish || loading}
+        onClick={handlePublish}
       >
-        Publish Test
+        {loading ? "Publishing..." : "Publish Test"}
       </button>
     </div>
   );
