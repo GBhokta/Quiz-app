@@ -40,7 +40,7 @@ export default function RoutesConfig() {
 
       {/* ---------- Test Session ---------- */}
       <Route path="/session/start" element={<TestSessionPage />} />
-      <Route path="/results/:sessionId" element={<ResultPage />} />
+    <Route path="/results/:resultId" element={<ResultPage />} />
 
       {/* ---------- Test Creator ---------- */}
       <Route

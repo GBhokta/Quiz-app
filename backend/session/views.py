@@ -24,6 +24,67 @@ from .serializers import SubmitTestSerializer
 
 
 
+class ResultDetailView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, result_id):
+        result = get_object_or_404(Result, id=result_id)
+
+        attempt = result.attempt
+
+        responses = (
+            AttemptResponse.objects
+            .filter(attempt=attempt)
+            .select_related("question")
+            .prefetch_related("question__options", "selected_options")
+        )
+
+        question_data = []
+
+        for resp in responses:
+            question = resp.question
+
+            # IDs of options selected by user
+            selected_option_ids = [
+                opt.option.id
+                for opt in resp.selected_options.all()
+            ]
+
+            question_data.append({
+                "question_id": question.id,
+                "question_text": question.question_text,
+                "question_type": question.question_type,
+                "marks_awarded": resp.marks_obtained,
+                "is_correct": resp.is_correct,
+                "explanation": question.explanation,
+
+                # 🔥 Return ALL options
+                "options": [
+                    {
+                        "id": opt.id,
+                        "text": opt.option_text,
+                        "is_correct": opt.is_correct
+                    }
+                    for opt in question.options.all()
+                ],
+
+                # What user selected
+                "selected_options": selected_option_ids,
+
+                # For NAT
+                "numerical_answer": resp.numerical_answer
+            })
+
+        return Response({
+            "score": attempt.score,
+            "percentage": result.percentage,
+            "correct": result.correct,
+            "wrong": result.wrong,
+            "unattempted": result.unattempted,
+            "questions": question_data
+        })
+
+
 class StartTestView(APIView):
     permission_classes = [AllowAny]
 
@@ -243,57 +304,3 @@ class SubmitTestView(APIView):
             "percentage": percentage
         }, status=status.HTTP_200_OK)
 
-
-# =========================================================
-# RESULT DETAIL VIEW
-# =========================================================
-
-class ResultDetailView(APIView):
-    permission_classes = [AllowAny]
-
-    def get(self, request, result_id):
-        result = get_object_or_404(Result, id=result_id)
-
-        attempt = result.attempt
-
-        responses = (
-            AttemptResponse.objects
-            .filter(attempt=attempt)
-            .select_related("question")
-            .prefetch_related("question__options", "selected_options")
-        )
-
-        question_data = []
-
-        for resp in responses:
-            question = resp.question
-
-            selected_option_ids = [
-                opt.option.id
-                for opt in resp.selected_options.all()
-            ]
-
-            correct_option_ids = [
-                opt.id
-                for opt in question.options.filter(is_correct=True)
-            ]
-
-            question_data.append({
-                "question_id": question.id,
-                "question_text": question.question_text,
-                "question_type": question.question_type,
-                "marks_awarded": resp.marks_obtained,
-                "is_correct": resp.is_correct,
-                "explanation": question.explanation,
-                "selected_options": selected_option_ids,
-                "correct_options": correct_option_ids,
-            })
-
-        return Response({
-            "score": attempt.score,
-            "percentage": result.percentage,
-            "correct": result.correct,
-            "wrong": result.wrong,
-            "unattempted": result.unattempted,
-            "questions": question_data
-        })
